@@ -1,0 +1,29 @@
+# Terraform
+*.tfstate
+*.tfstate.backup
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+*.tfvars
+!terraform.tfvars.example
+!environments/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.env
+
+# Databricks
+.databricks/
+*.dbc
+
+# Secrets
+*.key
+*.pem
+secrets/
+
+# IDE
+.vscode/
+.idea/
