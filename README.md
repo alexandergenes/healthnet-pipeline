@@ -62,11 +62,14 @@ Power BI / Dashboards
 | RED_SEDES | 82 | CSV | Catálogo de sedes de la red hospitalaria |
 | MED_PLANTA | 2,000 | CSV | Médicos de planta por sede y especialidad |
 | PAC_REGISTRO | 100,000+ | Parquet | Registro maestro de pacientes |
-| AGE_CITAS | 150,000+ | Parquet | Agendamiento y atención de citas médicas |
-| HCE_ENCUENTROS | 200,000+ | Parquet | Historia clínica electrónica — encuentros |
-| GCM_CAMAS | 49,938+ | JSON | Gestión y ocupación de camas hospitalarias |
-| FAR_DISPENSACION | 300,000+ | JSON | Dispensación farmacéutica |
+| AGE_CITAS | 1,500,000+ | Parquet | Agendamiento y atención de citas médicas |
+| HCE_ENCUENTROS | 2,000,000+ | Parquet | Historia clínica electrónica — encuentros |
+| GCM_CAMAS | 500,000+ | JSON | Gestión y ocupación de camas hospitalarias |
+| FAR_DISPENSACION | 3,000,000+ | JSON | Dispensación farmacéutica |
 
+## Diagrama ER
+
+![Diagrama ER HealthNet](docs/HealthNet-ER.png)
 ---
 
 ## Decisiones técnicas clave
