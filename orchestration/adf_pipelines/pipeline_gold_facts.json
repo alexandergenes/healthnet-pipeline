@@ -1,0 +1,141 @@
+{
+    "name": "pl_gold_facts",
+    "properties": {
+        "activities": [
+            {
+                "name": "gold_fact_consultas",
+                "type": "DatabricksNotebook",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": "/Workspace/healthnet-pipeline/04_gold/gold_fact_consultas"
+                },
+                "linkedServiceName": {
+                    "referenceName": "ls_databricks_healthnet",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "gold_fact_ocupacion_camas",
+                "type": "DatabricksNotebook",
+                "dependsOn": [
+                    {
+                        "activity": "gold_fact_consultas",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": "/Workspace/healthnet-pipeline/04_gold/gold_fact_ocupacion_camas"
+                },
+                "linkedServiceName": {
+                    "referenceName": "ls_databricks_healthnet",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "gold_fact_tiempos_espera",
+                "type": "DatabricksNotebook",
+                "dependsOn": [
+                    {
+                        "activity": "gold_fact_ocupacion_camas",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": "/Workspace/healthnet-pipeline/04_gold/gold_fact_tiempos_espera"
+                },
+                "linkedServiceName": {
+                    "referenceName": "ls_databricks_healthnet",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "gold_fact_costos_atencion",
+                "type": "DatabricksNotebook",
+                "dependsOn": [
+                    {
+                        "activity": "gold_fact_tiempos_espera",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": "/Workspace/healthnet-pipeline/04_gold/gold_fact_costos_atencion"
+                },
+                "linkedServiceName": {
+                    "referenceName": "ls_databricks_healthnet",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "gold_fact_alertas_epidemiologicas",
+                "type": "DatabricksNotebook",
+                "dependsOn": [
+                    {
+                        "activity": "gold_fact_costos_atencion",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": "/Workspace/healthnet-pipeline/04_gold/gold_fact_alertas_epidemiologicas"
+                },
+                "linkedServiceName": {
+                    "referenceName": "ls_databricks_healthnet",
+                    "type": "LinkedServiceReference"
+                }
+            }
+        ],
+        "folder": {
+            "name": "gold"
+        },
+        "annotations": [],
+        "lastPublishTime": "2026-06-02T15:47:46Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}

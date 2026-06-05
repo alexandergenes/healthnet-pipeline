@@ -1,0 +1,196 @@
+{
+    "name": "pl_bronze",
+    "properties": {
+        "description": "Pipeline Bronze - Ejecución diaria 02:00 AM",
+        "activities": [
+            {
+                "name": "bronze_RED_SEDES",
+                "type": "DatabricksNotebook",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": "/Workspace/healthnet-pipeline/02_bronze/bronze_red_sedes"
+                },
+                "linkedServiceName": {
+                    "referenceName": "ls_databricks_healthnet",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "bronze_MED_PLANTA",
+                "type": "DatabricksNotebook",
+                "dependsOn": [
+                    {
+                        "activity": "bronze_RED_SEDES",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": "/Workspace/healthnet-pipeline/02_bronze/bronze_med_planta"
+                },
+                "linkedServiceName": {
+                    "referenceName": "ls_databricks_healthnet",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "bronze_PAC_REGISTRO",
+                "type": "DatabricksNotebook",
+                "dependsOn": [
+                    {
+                        "activity": "bronze_MED_PLANTA",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": "/Workspace/healthnet-pipeline/02_bronze/bronze_pac_registro"
+                },
+                "linkedServiceName": {
+                    "referenceName": "ls_databricks_healthnet",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "bronze_AGE_CITAS",
+                "type": "DatabricksNotebook",
+                "dependsOn": [
+                    {
+                        "activity": "bronze_PAC_REGISTRO",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": "/Workspace/healthnet-pipeline/02_bronze/bronze_age_citas"
+                },
+                "linkedServiceName": {
+                    "referenceName": "ls_databricks_healthnet",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "bronze_HCE_ENCUENTROS",
+                "type": "DatabricksNotebook",
+                "dependsOn": [
+                    {
+                        "activity": "bronze_AGE_CITAS",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": "/Workspace/healthnet-pipeline/02_bronze/bronze_hce_encuentros"
+                },
+                "linkedServiceName": {
+                    "referenceName": "ls_databricks_healthnet",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "bronze_GCM_CAMAS",
+                "type": "DatabricksNotebook",
+                "dependsOn": [
+                    {
+                        "activity": "bronze_HCE_ENCUENTROS",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": "/Workspace/healthnet-pipeline/02_bronze/bronze_gcm_camas"
+                },
+                "linkedServiceName": {
+                    "referenceName": "ls_databricks_healthnet",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "bronze_FAR_DISPENSACION",
+                "type": "DatabricksNotebook",
+                "dependsOn": [
+                    {
+                        "activity": "bronze_GCM_CAMAS",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": "/Workspace/healthnet-pipeline/02_bronze/bronze_far_dispensacion"
+                },
+                "linkedServiceName": {
+                    "referenceName": "ls_databricks_healthnet",
+                    "type": "LinkedServiceReference"
+                }
+            }
+        ],
+        "folder": {
+            "name": "bronze"
+        },
+        "annotations": [],
+        "lastPublishTime": "2026-06-03T00:58:50Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,33 @@
+{
+    "name": "pl_gold_kpis",
+    "properties": {
+        "activities": [
+            {
+                "name": "gold_kpis_ejecutivos",
+                "type": "DatabricksNotebook",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": "/Workspace/healthnet-pipeline/04_gold/gold_kpis_ejecutivos"
+                },
+                "linkedServiceName": {
+                    "referenceName": "ls_databricks_healthnet",
+                    "type": "LinkedServiceReference"
+                }
+            }
+        ],
+        "folder": {
+            "name": "gold"
+        },
+        "annotations": [],
+        "lastPublishTime": "2026-06-02T15:51:03Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}

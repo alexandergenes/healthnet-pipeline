@@ -1,0 +1,87 @@
+{
+    "name": "pl_gold_dims",
+    "properties": {
+        "activities": [
+            {
+                "name": "gold_dim_sedes",
+                "type": "DatabricksNotebook",
+                "dependsOn": [
+                    {
+                        "activity": "gold_dim_pacientes",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": "/Workspace/healthnet-pipeline/04_gold/gold_dim_sedes"
+                },
+                "linkedServiceName": {
+                    "referenceName": "ls_databricks_healthnet",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "gold_dim_pacientes",
+                "type": "DatabricksNotebook",
+                "dependsOn": [
+                    {
+                        "activity": "gold_dim_medicos",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": "/Workspace/healthnet-pipeline/04_gold/gold_dim_pacientes"
+                },
+                "linkedServiceName": {
+                    "referenceName": "ls_databricks_healthnet",
+                    "type": "LinkedServiceReference"
+                }
+            },
+            {
+                "name": "gold_dim_medicos",
+                "type": "DatabricksNotebook",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "0.12:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "notebookPath": "/Workspace/healthnet-pipeline/04_gold/gold_dim_medicos"
+                },
+                "linkedServiceName": {
+                    "referenceName": "ls_databricks_healthnet",
+                    "type": "LinkedServiceReference"
+                }
+            }
+        ],
+        "folder": {
+            "name": "gold"
+        },
+        "annotations": [],
+        "lastPublishTime": "2026-06-02T15:44:09Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}
