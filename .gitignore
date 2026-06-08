@@ -4,9 +4,9 @@
 .terraform/
 .terraform.lock.hcl
 terraform.tfvars
-*.tfvars
 !terraform.tfvars.example
-!environments/
+!environments/dev/dev.tfvars
+!environments/prod/prod.tfvars
 
 # Python
 __pycache__/

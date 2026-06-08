@@ -1,0 +1,8 @@
+# ============================================================
+# HealthNet — Credenciales sensibles
+# ESTE ARCHIVO ESTÁ EN .gitignore — NUNCA SE COMMITEA
+# ============================================================
+# Renombrar a terraform.tfvars y completar con valores reales
+
+sql_admin_login    = "healthnet-admin"
+sql_admin_password = "TU_PASSWORD_AQUI"
