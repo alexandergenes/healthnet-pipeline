@@ -279,12 +279,12 @@ ADF → pl_orquestador → Trigger now
 
 ### 5. Segunda ejecución incremental
 
-Para agregar datos nuevos:
+Si los datos no han cambiado, no debe agregar nuevos datos:
 ```
-1. Modificar generation_config.yaml con nuevos volúmenes
-2. 01_fase_generacion_datos    → Genera archivos nuevos en landing/
-3. 02_autoloader_landing_sql   → AutoLoader detecta solo archivos nuevos
-4. ADF → pl_orquestador        → Bronze detecta fec_modificacion nueva
+En caso que si, seguiria lo siguiente:
+
+1. 02_autoloader_landing_sql   → AutoLoader detecta solo archivos nuevos
+2. ADF → pl_orquestador        → Bronze detecta fec_modificacion nueva
 ```
 
 ---
