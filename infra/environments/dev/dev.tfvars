@@ -1,5 +1,5 @@
-subscription_id           = "fc217083-87b0-443e-88ed-a15b35fa40e2"
-tenant_id                 = "efb9960f-52c9-4a5b-baa1-d8931c5bb90b"
+subscription_id = "REEMPLAZAR_CON_SUBSCRIPTION_ID"
+tenant_id       = "REEMPLAZAR_CON_TENANT_ID"
 environment               = "dev"
 location                  = "East US 2"
 resource_group_name       = "rg-healthnet-dev"
