@@ -19,19 +19,9 @@ Azure fue seleccionado por mi experiencia de 4 años como Azure Data Engineer, d
 
 ## Arquitectura
 
-```
-Azure SQL (fuente)
-        ↓ AutoLoader (landing/ → SQL)
-ADLS Gen2 landing/      ← zona de aterrizaje de archivos crudos
-        ↓ Bronze (watermark fec_modificacion)
-ADLS Gen2 bronze/       ← Delta Lake + CDF habilitado desde v0
-        ↓ Silver (CDF incremental + MERGE)
-ADLS Gen2 silver/       ← Delta Lake + CDF habilitado desde v0
-        ↓ Gold (CDF incremental + MERGE)
-ADLS Gen2 gold/         ← Delta Lake + CDF habilitado desde v0
-        ↓
-Power BI / Dashboards
-```
+
+![Arquitectura HealthNet](docs/arquitectura.png)
+
 
 **Orquestación:** Azure Data Factory — pl_orquestador (Schedule 02:00 AM UTC-5)  
 **Gobierno:** Unity Catalog + Azure Key Vault + Azure AD Groups  
