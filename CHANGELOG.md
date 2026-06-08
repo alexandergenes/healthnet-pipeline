@@ -5,115 +5,142 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ---
 
+## [2.0.0] — 2026-06-07 — alexandergenes
+
+### Agregado
+- Pipeline incremental completo y verificado con 2 ejecuciones consecutivas sin duplicados
+- Tabla `cdf_versions` en `bronze/_control/` con MERGE idempotente — trackea versiones procesadas por capa
+- `update_version_cdf` reescrito con MERGE (upsert) en lugar de UPDATE simple — resuelve el problema de versiones no registradas en primera ejecución
+- Función `leer_bronze` en `silver_utils.py` usando `.table()` de Unity Catalog — resuelve permisos CDF con service principal de ADF
+- Función `leer_silver_cdf` en `gold_utils.py` usando `.table()` de Unity Catalog
+- Función `leer_gold_cdf` en `gold_utils.py` para lectura incremental desde Gold hacia KPIs
+- Registro automático de tablas en Unity Catalog al momento de creación con permisos SELECT y MODIFY para service principal de ADF
+- Log de ejecución Gold en `gold/_control/pipeline_log`
+- Evidencias de ejecución en `docs/evidencias/`
+
+### Modificado
+- Dimensiones Gold (dim_pacientes, dim_medicos, dim_sedes) cambiadas a lectura completa `leer_silver()` — evita conflictos de CDF con tablas Silver compartidas
+- `fact_alertas_epidemiologicas` cambiada a lectura completa — requiere todos los datos históricos para calcular promedio móvil de 8 semanas
+- `gold_fact_alertas_epidemiologicas` escribe siempre aunque no haya alertas — garantiza que la tabla existe para KPIs
+- `leer_bronze` en `silver_utils.py` usa `get_ultima_version_cdf(tabla, "silver")` en lugar de `"bronze"` — trackeo correcto por capa
+- `leer_silver_cdf` en `gold_utils.py` usa `get_ultima_version_cdf(tabla, "gold")` en lugar de `"silver"`
+- Inicialización de `cdf_versions` corregida a `capa="bronze"` en lugar de `"silver"`
+
+### Corregido
+- Error `StreamingQueryException` en facts Gold paralelas — pre-creación de tablas vacías con CDF y partición correcta
+- Error `ProtocolChangedException` en ejecución paralela de Gold — tablas pre-creadas antes del pipeline
+- Duplicados en dims Gold en segunda ejecución — corregido con lectura completa para dimensiones
+- Registro huérfano `RED_SEDES/silver/-1` en `cdf_versions` — corregido en inicialización
+
+### Limitaciones documentadas
+- Facts con tablas Silver compartidas procesan completo en ejecución paralela
+- Generador de datos sin offsets automáticos para segunda generación incremental
+- Watermark truncado a segundos para compatibilidad con Azure SQL
+
+---
+
 ## [1.5.0] — 2026-06-05 — alexandergenes
 
 ### Agregado
-- Implementación de Change Data Feed (CDF) en todas las capas del pipeline (Bronze, Silver, Gold)
-- CDF habilitado desde `v0` en la creación inicial de cada tabla Delta — evita el error `CDF not recorded for version 0`
-- Tabla de control `cdf_versions` en `bronze/_control/` para trackear versiones procesadas por capa
-- Función `leer_bronze()` en `silver_utils.py` usando `.table()` de Unity Catalog en lugar de `.load(path)` — resuelve permisos CDF con service principal de ADF
-- Función `leer_silver_cdf()` en `gold_utils.py` usando `.table()` de Unity Catalog
-- Función `leer_gold_cdf()` en `gold_utils.py` para lectura incremental desde Gold hacia KPIs
-- Registro automático de tablas en Unity Catalog al momento de creación en `escribir_bronze()`, `escribir_silver()` y `escribir_gold()`
-- Permisos SELECT y MODIFY otorgados automáticamente al service principal de ADF en cada tabla registrada
+- CDF habilitado desde `v0` en todas las capas — evita error `CDF not recorded for version 0`
+- Patrón de creación: tabla vacía con CDF habilitado → escritura de datos → CDF disponible desde v0
+- `get_ultima_version_cdf` retorna `-1` cuando no existe registro — garantiza lectura desde primera versión
 
 ### Modificado
-- `leer_bronze()` en `silver_utils.py`: usa `get_ultima_version_cdf(tabla, "silver")` en lugar de `"bronze"` — cada capa trackea cuánto ha procesado de la capa anterior
-- `leer_silver_cdf()` en `gold_utils.py`: usa `get_ultima_version_cdf(tabla, "gold")` en lugar de `"silver"`
-- `escribir_bronze()`: crea tabla vacía con CDF habilitado antes de escribir datos para garantizar CDF desde v0
-- `escribir_silver()`: mismo patrón — tabla vacía con CDF antes de datos reales
-- `escribir_gold()`: mismo patrón con soporte de partición correcta desde v0
-- `get_ultima_version_cdf()`: retorna -1 cuando no existe registro (nunca procesado) en lugar de 0
+- `escribir_bronze`, `escribir_silver`, `escribir_gold` — crean tabla vacía con CDF antes de escribir datos
+- `escribir_silver` y `escribir_gold` — eliminado `ALTER TABLE SET TBLPROPERTIES` redundante que generaba versión extra
+
+### Corregido
+- Error `CDF not recorded for version 0` — CDF se habilita en v0 antes de escribir datos
+- Error `INSUFFICIENT_PERMISSIONS` con service principal ADF — uso de `.table()` en lugar de `.load(path)`
+- Versiones CDF `2→2` sin cambios — eliminado ALTER TABLE redundante
 
 ---
 
 ## [1.4.0] — 2026-06-04 — alexandergenes
 
 ### Agregado
-- Columna `fec_modificacion DATETIME DEFAULT GETDATE()` en las 7 tablas de Azure SQL — columna de control para ingesta incremental
+- Columna `fec_modificacion DATETIME DEFAULT GETDATE()` en las 7 tablas Azure SQL
 - AutoLoader actualizado para agregar `fec_modificacion = current_timestamp()` al escribir en SQL
-- Todos los notebooks Bronze actualizados a estrategia incremental usando `fec_modificacion` como `watermark_col` — incluye RED_SEDES y MED_PLANTA que antes eran full_load
-- `mergeSchema = true` en `escribir_bronze()`, `escribir_silver()` y `escribir_gold()` — permite evolución de schema sin errores
-- `spark.conf.set("spark.databricks.delta.schema.autoMerge.enabled", "true")` en Silver y Gold utils para MERGE con schema evolution
+- Todos los notebooks Bronze actualizados a estrategia incremental — incluyendo RED_SEDES y MED_PLANTA
+- `mergeSchema = true` en todas las capas — permite evolución de schema sin errores
+- `spark.conf.set("spark.databricks.delta.schema.autoMerge.enabled", "true")` en Silver y Gold
 
 ### Modificado
-- RED_SEDES y MED_PLANTA cambiados de full_load a incremental — ahora todos los notebooks Bronze son incrementales
-- `watermark_col` de todas las tablas cambiado a `fec_modificacion` — permite detectar tanto registros nuevos como modificados
-- `partition_col` de RED_SEDES y MED_PLANTA actualizado a `fec_modificacion`
+- RED_SEDES y MED_PLANTA de `full_load` a `incremental`
+- `watermark_col` de todas las tablas cambiado a `fec_modificacion`
+- Watermark truncado a segundos + 1 segundo para evitar re-procesamiento
 
 ### Corregido
-- Error `DOUBLE to Photon type long` en AutoLoader para tablas Parquet — cast explícito en `cargar_batch_a_sql()`
+- Error `Conversion failed when converting date and/or time` — truncado de microsegundos en watermark
+- Error `DOUBLE to Photon type long` — cast explícito de campos Decimal en AutoLoader
 - Error `Column _rescued_data not found` — columna eliminada antes de escribir a SQL
-- Error de Primary Key duplicada en re-ejecuciones de AutoLoader
+- Error Primary Key duplicada en re-ejecuciones de AutoLoader
 
 ---
 
 ## [1.3.0] — 2026-06-03 — alexandergenes
 
 ### Agregado
-- AutoLoader (`02_autoloader_landing_sql.py`) — reemplaza el Event Trigger de ADF para ingesta desde landing/ hacia Azure SQL
-- Soporte para múltiples archivos simultáneos con checkpoint en ADLS para garantizar exactamente-una-vez
-- Notebook `alerta_anomalia_volumen.py` — detecta desviaciones mayor al 30% respecto al promedio histórico; requiere mínimo 3 ejecuciones para activarse
-- Pipeline `pl_autoloader` en ADF con trigger horario `tr_autoloader_hourly`
+- AutoLoader (`02_autoloader_landing_sql.py`) — reemplaza Event Trigger de ADF
+- Soporte para múltiples archivos simultáneos con checkpoint exactamente-una-vez
+- `alerta_anomalia_volumen.py` — detecta desviaciones > 30% con mínimo 3 ejecuciones históricas
+- Pipeline `pl_autoloader` con trigger horario
 
 ### Modificado
-- Event Trigger `tr_evento_landing` desactivado — reemplazado por AutoLoader
-- `pl_orquestador` actualizado para incluir `alerta_anomalia_volumen` como último paso
+- Event Trigger `tr_evento_landing` desactivado
+- `pl_orquestador` incluye `alerta_anomalia_volumen` como último paso
 
 ### Corregido
-- Error `ProtocolChangedException` en Gold — pre-creación de tablas vacías antes de ejecución paralela
-- Validación de historial mínimo en alerta de volumen — evita falsos positivos en primera ejecución
+- Falsos positivos en primera ejecución de alerta de volumen — validación de historial mínimo
 
 ---
 
 ## [1.2.0] — 2026-06-02 — alexandergenes
 
 ### Agregado
-- Capa Gold completa: 3 dimensiones, 5 facts, 5 tablas KPIs ejecutivos
-- `gold_utils.py` con funciones `escribir_gold()`, `leer_silver()`, `leer_silver_cdf()`, `leer_gold_cdf()`
-- 13 notebooks Gold individuales
-- Linaje de datos documentado para 3 campos calculados: `grupo_edad`, `glosa_riesgo_epidemiologico`, `tasa_ocupacion_camas`
-- Particionamiento en Gold por dimensiones de análisis frecuentes
+- Capa Gold completa: 3 dimensiones, 5 facts, 5 tablas KPIs
+- `gold_utils.py` con funciones `escribir_gold`, `leer_silver`, `leer_silver_cdf`, `leer_gold_cdf`
+- Linaje documentado: `grupo_edad`, `glosa_riesgo_epidemiologico`, `tasa_ocupacion_camas`
+- Log de ejecución Gold
 - MERGE idempotente en Gold
 
 ### Modificado
-- Pipelines ADF `pl_gold_dims` y `pl_gold_facts` ejecutan notebooks en paralelo
-- `pl_orquestador` con secuencia Bronze → Silver → Gold Dims → Gold Facts → Gold KPIs → Alerta Volumen
+- `pl_gold_dims` y `pl_gold_facts` ejecutan en paralelo
+- `pl_orquestador` con secuencia Bronze → Silver → Gold Dims → Gold Facts → Gold KPIs → Alerta
 
 ---
 
 ## [1.1.0] — 2026-06-01 — alexandergenes
 
 ### Agregado
-- Capa Silver completa: 7 notebooks individuales + `silver_utils.py`
-- MERGE idempotente en Silver — re-ejecuciones no generan duplicados
+- Capa Silver completa: 7 notebooks + `silver_utils.py`
+- MERGE idempotente en Silver
 - 5 pruebas de calidad automatizadas por tabla
-- Enmascaramiento PII: `num_doc_hash` (SHA-256), `vr_facturado` y `vr_unitario` (NULL en Silver)
+- Enmascaramiento PII: `num_doc_hash` (SHA-256), `vr_facturado` y `vr_unitario` (NULL)
 - Tabla de errores `silver/_control/errores_pipeline`
-- Tabla de reporte de calidad `silver/_control/reporte_calidad`
-- Validación de integridad referencial con registro en tabla de errores
-- Estrategia documentada de manejo de nulos por columna
+- Reporte de calidad `silver/_control/reporte_calidad`
+- Validación de integridad referencial
 
 ---
 
 ## [1.0.0] — 2026-05-30 — alexandergenes
 
 ### Agregado
-- Infraestructura Azure aprovisionada con Terraform
-- Resource Group, Storage Account ADLS Gen2, Azure SQL Database, Key Vault, Log Analytics, Databricks Workspace Premium, Azure Data Factory
+- Infraestructura Azure completa con Terraform
+- Resource Group, Storage ADLS Gen2, Azure SQL, Key Vault, Log Analytics, Databricks Premium, ADF
 - Backend remoto Terraform en ADLS Gen2
 - Soporte multi-entorno: dev.tfvars y prod.tfvars
 - Generación de datos sintéticos con seed=42, 7 tablas, distribuciones realistas
-- 3 anomalías intencionales: duplicados AGE_CITAS, fechas fuera de rango HCE, camas negativas GCM
-- Múltiples formatos de salida: CSV, Parquet y JSON
-- Script de carga a Azure SQL con manejo de FK
+- 3 anomalías intencionales documentadas
+- Múltiples formatos: CSV, Parquet, JSON
 - Capa Bronze completa: 7 notebooks + bronze_utils.py
-- Columnas de auditoría: _ingesta_ts, _fuente, _lote_id
-- Particionamiento Bronze por _anio/_mes/_dia
+- Columnas de auditoría: `_ingesta_ts`, `_fuente`, `_lote_id`
+- Particionamiento Bronze por `_anio/_mes/_dia`
 - Unity Catalog con External Locations y Storage Credential
 - Secret Scope referenciando Azure Key Vault
 - Pipelines ADF: pl_bronze, pl_silver, pl_gold_dims, pl_gold_facts, pl_gold_kpis, pl_orquestador, pl_autoloader
-- Trigger programado 02:00 AM UTC-5 Bogotá
+- Trigger programado 02:00 AM UTC-5
 - Alertas Azure Monitor: fallo (Sev 1) y éxito (Sev 4)
 - Roles Azure AD: admin, data-engineer, analyst
-- Catálogo de datos en /docs/data_catalog.md
+- Catálogo de datos en docs/data_catalog.md
