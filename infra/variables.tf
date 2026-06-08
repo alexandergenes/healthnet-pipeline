@@ -70,9 +70,3 @@ variable "sql_admin_password" {
   type        = string
   sensitive   = true
 }
-
-# ─── Databricks ───────────────────────────────────────────────
-variable "databricks_resource_provider_object_id" {
-  description = "Object ID del Databricks Resource Provider en Azure AD"
-  type        = string
-}

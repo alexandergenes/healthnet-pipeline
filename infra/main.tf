@@ -114,12 +114,6 @@ resource "azurerm_role_assignment" "kv_terraform_admin" {
   principal_id         = data.azurerm_client_config.current.object_id
 }
 
-# Permisos Key Vault — Databricks Resource Provider
-resource "azurerm_role_assignment" "kv_databricks" {
-  scope                = azurerm_key_vault.kv.id
-  role_definition_name = "Key Vault Secrets User"
-  principal_id         = var.databricks_resource_provider_object_id
-}
 
 # ─── Secrets en Key Vault ─────────────────────────────────────
 resource "azurerm_key_vault_secret" "sql_server" {
