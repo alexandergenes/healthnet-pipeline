@@ -293,10 +293,10 @@ En caso que si, seguiria lo siguiente:
 
 | Pipeline | Descripción | Trigger |
 |---|---|---|
-| `pl_bronze` | 7 notebooks Bronze en paralelo | Desde pl_orquestador |
+| `pl_bronze` | 7 notebooks Bronze secuencial | Desde pl_orquestador |
 | `pl_silver` | 7 notebooks Silver con dependencias FK | Desde pl_orquestador |
-| `pl_gold_dims` | 3 dims en paralelo | Desde pl_orquestador |
-| `pl_gold_facts` | 5 facts en paralelo | Desde pl_orquestador |
+| `pl_gold_dims` | 3 dims secuencial | Desde pl_orquestador |
+| `pl_gold_facts` | 5 facts secuencial | Desde pl_orquestador |
 | `pl_gold_kpis` | KPIs ejecutivos | Desde pl_orquestador |
 | `pl_orquestador` | Bronze → Silver → Gold → Alerta Volumen | Schedule 02:00 AM UTC-5 |
 | `pl_autoloader` | AutoLoader landing → SQL | Schedule hourly |
