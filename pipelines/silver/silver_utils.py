@@ -9,9 +9,9 @@
 #   - Reporte de calidad de datos
 #   - Escritura Delta idempotente (MERGE)
 
-# ── CELDA 1: Configuración de acceso ─────────────────────────
+# Configuración de acceso
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 from pyspark.sql.types import *
@@ -46,13 +46,7 @@ print(f"   Silver: {SILVER_BASE}")
 
 # COMMAND ----------
 
-print(f"BRONZE_BASE:       {BRONZE_BASE}")
-print(f"SILVER_BASE:       {SILVER_BASE}")
-print(f"CDF_VERSIONS_PATH: {CDF_VERSIONS_PATH}")
-
-# COMMAND ----------
-
-# ── CELDA 2: Paths de control ─────────────────────────────────
+# Paths de control
 
 ERRORES_PATH  = f"{SILVER_BASE}/_control/errores_pipeline"
 CALIDAD_PATH  = f"{SILVER_BASE}/_control/reporte_calidad"
@@ -75,20 +69,28 @@ def get_ultima_version_cdf(tabla: str, capa: str) -> int:
 
 def update_version_cdf(tabla: str, capa: str, nueva_version: int):
     try:
+        df_nueva = spark.createDataFrame(
+            [(tabla, capa, nueva_version, datetime.now())],
+            ["tabla","capa","ultima_version","ts_actualizacion"]
+        ).withColumn("ts_actualizacion", F.col("ts_actualizacion").cast("timestamp"))
+
         dt = DeltaTable.forPath(spark, CDF_VERSIONS_PATH)
-        dt.update(
-            condition = (F.col("tabla") == tabla) & (F.col("capa") == capa),
-            set = {
-                "ultima_version":   F.lit(nueva_version),
-                "ts_actualizacion": F.lit(datetime.now()).cast("timestamp")
-            }
-        )
+        dt.alias("target").merge(
+            df_nueva.alias("source"),
+            "(target.tabla = source.tabla AND target.capa = source.capa)"
+        ).whenMatchedUpdateAll() \
+         .whenNotMatchedInsertAll() \
+         .execute()
+
     except:
+        # Tabla cdf_versions no existe — crear con primer registro
         spark.createDataFrame(
             [(tabla, capa, nueva_version, datetime.now())],
             ["tabla","capa","ultima_version","ts_actualizacion"]
         ).withColumn("ts_actualizacion", F.col("ts_actualizacion").cast("timestamp")) \
          .write.format("delta").mode("append").save(CDF_VERSIONS_PATH)
+
+    print(f"  📌 CDF version guardada: {capa}/{tabla} → v{nueva_version}")
 
 def get_version_actual_delta(tabla_uc: str) -> int:
     historia = spark.sql(f"DESCRIBE HISTORY {tabla_uc}")
@@ -96,7 +98,7 @@ def get_version_actual_delta(tabla_uc: str) -> int:
 
 # COMMAND ----------
 
-# ── CELDA 3: Lectura desde Bronze ─────────────────────────────
+# Lectura desde Bronze
 
 def leer_bronze(tabla: str):
     """Lee solo cambios de Bronze desde última versión procesada via CDF."""
@@ -138,7 +140,7 @@ def leer_bronze(tabla: str):
 
 # COMMAND ----------
 
-# ── CELDA 4: Deduplicación ────────────────────────────────────
+# Deduplicación
 
 def deduplicar(df: DataFrame, pk_cols: list, tabla: str) -> tuple:
     """
@@ -164,7 +166,7 @@ def deduplicar(df: DataFrame, pk_cols: list, tabla: str) -> tuple:
 
 # COMMAND ----------
 
-# ── CELDA 5: Manejo de nulos ──────────────────────────────────
+# Manejo de nulos
 
 def manejar_nulos(df: DataFrame, estrategias: dict) -> DataFrame:
     """
@@ -201,7 +203,7 @@ def manejar_nulos(df: DataFrame, estrategias: dict) -> DataFrame:
 
 # COMMAND ----------
 
-# ── CELDA 6: Enmascaramiento PII ──────────────────────────────
+# Enmascaramiento PII
 
 # Columnas PII por tabla — enmascarar en Silver
 PII_COLS = {
@@ -240,7 +242,7 @@ sha256_udf = F.udf(
 
 # COMMAND ----------
 
-# ── CELDA 7: Validación de integridad referencial ─────────────
+# Validación de integridad referencial 
 
 def validar_integridad_referencial(
     df_hechos: DataFrame,
@@ -286,7 +288,7 @@ def validar_integridad_referencial(
 
 # COMMAND ----------
 
-# ── CELDA 8: Tabla de errores del pipeline ────────────────────
+# Tabla de errores del pipeline
 
 def registrar_error(df_errores: DataFrame, tabla: str, tipo_error: str):
     """
@@ -325,7 +327,7 @@ def registrar_error(df_errores: DataFrame, tabla: str, tipo_error: str):
 
 # COMMAND ----------
 
-# ── CELDA 9: Reporte de calidad de datos ──────────────────────
+# Reporte de calidad de datos
 
 def generar_reporte_calidad(
     df_bronze: DataFrame,
@@ -389,7 +391,7 @@ def generar_reporte_calidad(
 
 # COMMAND ----------
 
-# ── CELDA 10: Escritura Delta idempotente (MERGE) ─────────────
+# Escritura Delta idempotente (MERGE)
 
 def escribir_silver(
     df: DataFrame,
@@ -463,7 +465,7 @@ def escribir_silver(
 
 # COMMAND ----------
 
-# ── CELDA 11: Pruebas de calidad (5 validaciones) ─────────────
+# Pruebas de calidad (5 validaciones)
 
 def ejecutar_pruebas_calidad(df: DataFrame, tabla: str, reglas: list) -> dict:
     """
@@ -525,7 +527,7 @@ def ejecutar_pruebas_calidad(df: DataFrame, tabla: str, reglas: list) -> dict:
 
 # COMMAND ----------
 
-# ── CELDA 12: Función principal Silver ───────────────────────
+# Función principal Silver
 
 def procesar_silver(
     tabla: str,

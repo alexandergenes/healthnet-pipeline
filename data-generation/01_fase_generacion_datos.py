@@ -1,5 +1,5 @@
 # Databricks notebook source
-# ── CELDA 1: Configuración de acceso a ADLS Gen2 ─────────────
+# Configuración de acceso a ADLS Gen2
 
 STORAGE_ACCOUNT = "dlshealthnetdev"
 SECRET_SCOPE    = "healthnet-kv-scope"
@@ -20,7 +20,46 @@ print(f"   Landing: {LANDING_PATH}")
 
 # COMMAND ----------
 
-# ── CELDA 2: Cargar configuración desde ADLS ─────────────────
+# Leer offsets desde Azure SQL via Spark
+
+server   = dbutils.secrets.get(scope="healthnet-kv-scope", key="sql-server")
+user     = dbutils.secrets.get(scope="healthnet-kv-scope", key="sql-user")
+password = dbutils.secrets.get(scope="healthnet-kv-scope", key="sql-password")
+database = "healthnet-source"
+
+JDBC_URL = f"jdbc:sqlserver://{server};databaseName={database};encrypt=true;trustServerCertificate=false"
+JDBC_PROPS = {
+    "user":     user,
+    "password": password,
+    "driver":   "com.microsoft.sqlserver.jdbc.SQLServerDriver"
+}
+
+query = """(
+    SELECT 'RED_SEDES' AS tabla, ISNULL(MAX(id_sede), 0) AS max_id FROM dbo.RED_SEDES
+    UNION ALL
+    SELECT 'MED_PLANTA', ISNULL(MAX(med_id), 0) FROM dbo.MED_PLANTA
+    UNION ALL
+    SELECT 'PAC_REGISTRO', ISNULL(MAX(pac_id), 0) FROM dbo.PAC_REGISTRO
+    UNION ALL
+    SELECT 'AGE_CITAS', ISNULL(MAX(id_cita), 0) FROM dbo.AGE_CITAS
+    UNION ALL
+    SELECT 'HCE_ENCUENTROS', ISNULL(MAX(id_encuentro), 0) FROM dbo.HCE_ENCUENTROS
+    UNION ALL
+    SELECT 'GCM_CAMAS', ISNULL(MAX(id_registro_cama), 0) FROM dbo.GCM_CAMAS
+    UNION ALL
+    SELECT 'FAR_DISPENSACION', ISNULL(MAX(id_dispensacion), 0) FROM dbo.FAR_DISPENSACION
+) t"""
+
+df_offsets = spark.read.jdbc(url=JDBC_URL, table=query, properties=JDBC_PROPS)
+OFFSETS    = {row["tabla"]: row["max_id"] for row in df_offsets.collect()}
+
+print("✅ Offsets leídos desde Azure SQL:")
+for tabla, offset in OFFSETS.items():
+    print(f"  {tabla}: {offset:,}")
+
+# COMMAND ----------
+
+# Cargar configuración desde ADLS
 import yaml, hashlib, random
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
@@ -56,7 +95,7 @@ for t, v in VOL.items():
 
 # COMMAND ----------
 
-# ── CELDA 3: Funciones helper ─────────────────────────────────
+# Funciones helper
 
 def rdate(start=DT_START, end=DT_END) -> date:
     return start + timedelta(days=random.randint(0, (end - start).days))
@@ -85,7 +124,7 @@ def to_spark(df_pd: pd.DataFrame, name: str):
 
 # COMMAND ----------
 
-# ── CELDA 4: RED_SEDES ────────────────────────────────────────
+# RED_SEDES
 
 def gen_red_sedes() -> pd.DataFrame:
     rows = []
@@ -126,8 +165,7 @@ def gen_red_sedes() -> pd.DataFrame:
 
 # COMMAND ----------
 
-# COMMAND ----------
-# ── CELDA 5: MED_PLANTA ───────────────────────────────────────
+#  MED_PLANTA
 
 def gen_med_planta(sede_ids: list) -> pd.DataFrame:
     rows      = []
@@ -149,12 +187,12 @@ def gen_med_planta(sede_ids: list) -> pd.DataFrame:
 
 # COMMAND ----------
 
-# ── CELDA 6: PAC_REGISTRO ─────────────────────────────────────
+#  PAC_REGISTRO 
 
 def gen_pac_registro() -> pd.DataFrame:
     rows  = []
     edades = np.clip(np.random.normal(40, 18, VOL["PAC_REGISTRO"]).astype(int), 0, 95)
-
+    
     for pac_id in range(1, VOL["PAC_REGISTRO"] + 1):
         edad    = int(edades[pac_id - 1])
         fec_nac = date.today() - relativedelta(years=edad, months=random.randint(0,11), days=random.randint(0,28))
@@ -195,7 +233,7 @@ def gen_pac_registro() -> pd.DataFrame:
 
 # COMMAND ----------
 
-# ── CELDA 7: AGE_CITAS ────────────────────────────────────────
+# AGE_CITAS
 # ANOMALÍA 1: ~0.5% duplicados (mismo pac, sede, fecha)
 
 def gen_age_citas(pac_ids, med_ids, sede_ids) -> pd.DataFrame:
@@ -253,7 +291,7 @@ def gen_age_citas(pac_ids, med_ids, sede_ids) -> pd.DataFrame:
 
 # COMMAND ----------
 
-# ── CELDA 8: HCE_ENCUENTROS ──────────────────────────────────
+# HCE_ENCUENTROS
 
 def gen_hce_encuentros(pac_ids, med_ids, sede_ids) -> pd.DataFrame:
     rows   = []
@@ -309,7 +347,7 @@ def gen_hce_encuentros(pac_ids, med_ids, sede_ids) -> pd.DataFrame:
 
 # COMMAND ----------
 
-# ── CELDA 9: GCM_CAMAS ───────────────────────────────────────
+# GCM_CAMAS
 # ANOMALÍA 3: ~0.4% num_camas_disp negativo
 
 def gen_gcm_camas(sedes_df: pd.DataFrame) -> pd.DataFrame:
@@ -348,7 +386,7 @@ def gen_gcm_camas(sedes_df: pd.DataFrame) -> pd.DataFrame:
 
 # COMMAND ----------
 
-# ── CELDA 10: FAR_DISPENSACION ───────────────────────────────
+# FAR_DISPENSACION
 
 MEDICAMENTOS = [
     ("MET001","Metformina 500mg"),    ("AML002","Amlodipino 5mg"),
@@ -388,7 +426,7 @@ def gen_far_dispensacion(enc_ids, pac_ids, sede_ids) -> pd.DataFrame:
 
 # COMMAND ----------
 
-# ── CELDA 11: Orquestación ────────────────────────────────────
+# Orquestación
 
 from datetime import datetime as dt
 inicio_total = dt.now()
@@ -437,7 +475,7 @@ SPARK_DFS = {nombre: to_spark(df, nombre) for nombre, df in TABLAS.items()}
 
 # COMMAND ----------
 
-# ── CELDA 12: Persistencia en landing (un formato por tabla) ──
+# Persistencia en landing (un formato por tabla) ──
 
 ts_lote = dt.now().strftime("%Y%m%d_%H%M%S")
 
@@ -473,7 +511,7 @@ print(f"\n✅ landing/ escrito correctamente. Lote: {ts_lote}")
 
 # COMMAND ----------
 
-# ── CELDA 13: Validación — evidencia de carga en archivos ─────────────────
+# Validación — evidencia de carga en archivos
 
 duracion = (dt.now() - inicio_total).seconds
 

@@ -71,13 +71,13 @@ n = escribir_gold(
 )
 
 if version_enc is not None:
-    update_version_cdf("HCE_ENCUENTROS", "silver", version_enc)
+    update_version_cdf("HCE_ENCUENTROS", "gold", version_enc)
     print(f"  📌 CDF actualizado: silver/HCE_ENCUENTROS → v{version_enc}")
 if version_sedes is not None:
-    update_version_cdf("RED_SEDES", "silver", version_sedes)
+    update_version_cdf("RED_SEDES", "gold", version_sedes)
     print(f"  📌 CDF actualizado: silver/RED_SEDES → v{version_sedes}")
 if version_pacs is not None:
-    update_version_cdf("PAC_REGISTRO", "silver", version_pacs)
+    update_version_cdf("PAC_REGISTRO", "gold", version_pacs)
     print(f"  📌 CDF actualizado: silver/PAC_REGISTRO → v{version_pacs}")
 
 duracion = (datetime.now() - inicio).seconds

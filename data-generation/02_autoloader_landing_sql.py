@@ -2,7 +2,7 @@
 # HealthNet — AutoLoader: landing/ → Azure SQL Database
 # Reemplaza el Event Trigger de ADF por Structured Streaming
 
-# ── CELDA 1: Configuración ────────────────────────────────────
+# Configuración
 
 from datetime import datetime
 from pyspark.sql import functions as F
@@ -45,10 +45,7 @@ print(f"   SQL Server:  {sql_server}")
 
 # COMMAND ----------
 
-
-# COMMAND ----------
-
-# ── CELDA 2: Schemas explícitos por tabla ─────────────────────
+# Schemas explícitos por tabla
 
 SCHEMAS = {
     "RED_SEDES": StructType([
@@ -171,7 +168,7 @@ print("✅ Schemas y configuración de tablas listos")
 
 # COMMAND ----------
 
-# ── CELDA 3: Función de carga a SQL (micro-batch) ─────────────
+# Función de carga a SQL (micro-batch)
 
 def cargar_batch_a_sql(df, batch_id, tabla):
     from pyspark.sql import functions as F
@@ -193,6 +190,16 @@ def cargar_batch_a_sql(df, batch_id, tabla):
                 F.col(field.name).cast(field.dataType)
             )
 
+    # Agregar después del cast general, antes del .save()
+    if "vr_facturado" in df.columns:
+        df = df.withColumn("vr_facturado", 
+                        F.round(F.col("vr_facturado").cast(DecimalType(14,2)), 2))
+
+    # Agregar junto al fix de vr_facturado
+    if "vr_unitario" in df.columns:
+        df = df.withColumn("vr_unitario",
+                        F.round(F.col("vr_unitario").cast(DecimalType(10,2)), 2))
+
     # Agregar fec_modificacion — timestamp de cuando se escribe en SQL
     df = df.withColumn("fec_modificacion", F.current_timestamp())        
 
@@ -210,7 +217,7 @@ def cargar_batch_a_sql(df, batch_id, tabla):
 
 # COMMAND ----------
 
-# ── CELDA 4: AutoLoader por tabla ─────────────────────────────
+# AutoLoader por tabla
 
 def iniciar_autoloader(tabla: str, trigger_once: bool = True):
     formato   = FORMATO_TABLA[tabla]
@@ -312,7 +319,7 @@ def iniciar_autoloader(tabla: str, trigger_once: bool = True):
 
 # COMMAND ----------
 
-# ── CELDA 5: Orquestación — procesar todas las tablas ─────────
+# Orquestación — procesar todas las tablas
 
 import traceback
 
@@ -348,7 +355,7 @@ for tabla in ORDEN_CARGA:
 
 # COMMAND ----------
 
-# ── CELDA 6: Evidencia — COUNT(*) desde Azure SQL ─────────────
+# Evidencia — COUNT(*) desde Azure SQL
 
 duracion = (datetime.now() - inicio).seconds
 

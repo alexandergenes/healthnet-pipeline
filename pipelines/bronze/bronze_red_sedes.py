@@ -5,8 +5,8 @@
 
 ingestar_bronze(
     tabla         = "RED_SEDES",
-    watermark_col = "fec_modificacion",    # ← watermark por fecha de carga
+    watermark_col = "fec_modificacion",
     partition_col = "fec_apertura",
-    estrategia    = "full_load"
+    estrategia    = "incremental"
 )
  

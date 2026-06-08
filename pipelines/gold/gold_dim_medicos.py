@@ -12,14 +12,9 @@ print("=" * 60)
 print(f"  Gold: dim_medicos | Lote: {lote_id}")
 print("=" * 60)
 
-df_med,   version_med   = leer_silver_cdf("MED_PLANTA")
-df_sedes, version_sedes = leer_silver_cdf("RED_SEDES")
+df_med   = leer_silver("MED_PLANTA")
+df_sedes = leer_silver("RED_SEDES")
 
-if df_med is None and df_sedes is None:
-    dbutils.notebook.exit("Sin cambios")
-
-if df_med   is None: df_med   = leer_silver("MED_PLANTA")
-if df_sedes is None: df_sedes = leer_silver("RED_SEDES")
 
 df_sedes = df_sedes.select("id_sede","nom_sede","tip_sede","nom_ciudad","nom_pais")
 
@@ -52,12 +47,6 @@ n = escribir_gold(
     lote_id        = lote_id
 )
 
-if version_med is not None:
-    update_version_cdf("MED_PLANTA", "silver", version_med)
-    print(f"  📌 CDF actualizado: silver/MED_PLANTA → v{version_med}")
-if version_sedes is not None:
-    update_version_cdf("RED_SEDES", "silver", version_sedes)
-    print(f"  📌 CDF actualizado: silver/RED_SEDES → v{version_sedes}")
 
 duracion = (datetime.now() - inicio).seconds
 log_gold("dim_medicos", lote_id, n, "EXITOSO", duracion)

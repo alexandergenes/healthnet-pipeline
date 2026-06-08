@@ -68,10 +68,10 @@ n = escribir_gold(
 )
 
 if version_citas is not None:
-    update_version_cdf("AGE_CITAS", "silver", version_citas)
+    update_version_cdf("AGE_CITAS", "gold", version_citas)
     print(f"  📌 CDF actualizado: silver/AGE_CITAS → v{version_citas}")
 if version_sedes is not None:
-    update_version_cdf("RED_SEDES", "silver", version_sedes)
+    update_version_cdf("RED_SEDES", "gold", version_sedes)
     print(f"  📌 CDF actualizado: silver/RED_SEDES → v{version_sedes}")
 
 duracion = (datetime.now() - inicio).seconds

@@ -13,14 +13,11 @@ print("=" * 60)
 print(f"  Gold: fact_alertas_epidemiologicas | Lote: {lote_id}")
 print("=" * 60)
 
-df_enc,   version_enc   = leer_silver_cdf("HCE_ENCUENTROS")
-df_sedes, version_sedes = leer_silver_cdf("RED_SEDES")
+df_enc   = leer_silver("HCE_ENCUENTROS")
+df_sedes = leer_silver("RED_SEDES")
 
-if df_enc is None and df_sedes is None:
-    dbutils.notebook.exit("Sin cambios")
-
-if df_enc   is None: df_enc   = leer_silver("HCE_ENCUENTROS")
-if df_sedes is None: df_sedes = leer_silver("RED_SEDES")
+version_enc   = None
+version_sedes = None
 
 df_sedes = df_sedes.select("id_sede","nom_ciudad","nom_pais")
 
@@ -77,24 +74,24 @@ df_alertas = df_con_promedio \
 n_alertas = df_alertas.count()
 print(f"  🚨 Alertas epidemiológicas detectadas: {n_alertas:,}")
 
-if n_alertas > 0:
-    n = escribir_gold(
-        df_alertas, "fact_alertas_epidemiologicas",
-        pk_cols        = ["anio","semana","ciudad","codigo_cie10"],
-        partition_cols = ["anio"],
-        lote_id        = lote_id
-    )
-else:
-    print("  ✅ Sin alertas en este período")
-    n = 0
+# Escribir siempre — con datos o vacío para garantizar que la tabla existe
+n = escribir_gold(
+    df_alertas, "fact_alertas_epidemiologicas",
+    pk_cols        = ["anio","semana","ciudad","codigo_cie10"],
+    partition_cols = ["anio"],
+    lote_id        = lote_id
+)
+
+if n_alertas == 0:
+    print("  ✅ Sin alertas en este período — tabla creada vacía para KPIs")
 
 if version_enc is not None:
-    update_version_cdf("HCE_ENCUENTROS", "silver", version_enc)
+    update_version_cdf("HCE_ENCUENTROS", "gold", version_enc)
     print(f"  📌 CDF actualizado: silver/HCE_ENCUENTROS → v{version_enc}")
 if version_sedes is not None:
-    update_version_cdf("RED_SEDES", "silver", version_sedes)
+    update_version_cdf("RED_SEDES", "gold", version_sedes)
     print(f"  📌 CDF actualizado: silver/RED_SEDES → v{version_sedes}")
 
 duracion = (datetime.now() - inicio).seconds
-log_gold("fact_alertas_epidemiologicas", lote_id, n, "EXITOSO", duracion)
-print(f"\n✅ fact_alertas_epidemiologicas completado | {n:,} alertas | {duracion}s")
+log_gold("fact_alertas_epidemiologicas", lote_id, n_alertas, "EXITOSO", duracion)
+print(f"\n✅ fact_alertas_epidemiologicas completado | {n_alertas:,} alertas | {duracion}s")

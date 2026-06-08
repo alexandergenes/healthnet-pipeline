@@ -5,7 +5,7 @@
 
 ingestar_bronze(
     tabla         = "GCM_CAMAS",
-    watermark_col = "fec_modificacion",    # ← watermark por fecha de carga
+    watermark_col = "fec_modificacion",
     partition_col = "fec_hora_registro",
     estrategia    = "incremental"
 )

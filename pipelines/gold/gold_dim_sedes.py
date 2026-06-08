@@ -12,10 +12,8 @@ print("=" * 60)
 print(f"  Gold: dim_sedes | Lote: {lote_id}")
 print("=" * 60)
 
-df, version_actual = leer_silver_cdf("RED_SEDES")
-
-if df is None:
-    dbutils.notebook.exit("Sin cambios")
+# AHORA — leer completo siempre
+df = leer_silver("RED_SEDES")
 
 df_dim = df.select(
     F.col("id_sede"),
@@ -51,9 +49,6 @@ n = escribir_gold(
     lote_id        = lote_id
 )
 
-if version_actual is not None:
-    update_version_cdf("RED_SEDES", "silver", version_actual)
-    print(f"  📌 CDF actualizado: silver/RED_SEDES → v{version_actual}")
 
 duracion = (datetime.now() - inicio).seconds
 log_gold("dim_sedes", lote_id, n, "EXITOSO", duracion)

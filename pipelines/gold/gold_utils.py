@@ -1,7 +1,7 @@
 # Databricks notebook source
 # Configuración
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 from pyspark.sql.types import *
@@ -43,7 +43,6 @@ def leer_silver(tabla: str) -> DataFrame:
     n    = df.count()
     print(f"  📥 Silver {tabla}: {n:,} registros")
     return df
-
 
 
 # COMMAND ----------
@@ -101,20 +100,28 @@ def get_ultima_version_cdf(tabla: str, capa: str) -> int:
 
 def update_version_cdf(tabla: str, capa: str, nueva_version: int):
     try:
+        df_nueva = spark.createDataFrame(
+            [(tabla, capa, nueva_version, datetime.now())],
+            ["tabla","capa","ultima_version","ts_actualizacion"]
+        ).withColumn("ts_actualizacion", F.col("ts_actualizacion").cast("timestamp"))
+
         dt = DeltaTable.forPath(spark, CDF_VERSIONS_PATH)
-        dt.update(
-            condition = (F.col("tabla") == tabla) & (F.col("capa") == capa),
-            set = {
-                "ultima_version":   F.lit(nueva_version),
-                "ts_actualizacion": F.lit(datetime.now()).cast("timestamp")
-            }
-        )
+        dt.alias("target").merge(
+            df_nueva.alias("source"),
+            "(target.tabla = source.tabla AND target.capa = source.capa)"
+        ).whenMatchedUpdateAll() \
+         .whenNotMatchedInsertAll() \
+         .execute()
+
     except:
+        # Tabla cdf_versions no existe — crear con primer registro
         spark.createDataFrame(
             [(tabla, capa, nueva_version, datetime.now())],
             ["tabla","capa","ultima_version","ts_actualizacion"]
         ).withColumn("ts_actualizacion", F.col("ts_actualizacion").cast("timestamp")) \
          .write.format("delta").mode("append").save(CDF_VERSIONS_PATH)
+
+    print(f"  📌 CDF version guardada: {capa}/{tabla} → v{nueva_version}")
 
 def get_version_actual_delta(path: str) -> int:
     historia = spark.sql(f"DESCRIBE HISTORY delta.`{path}`")

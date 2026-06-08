@@ -4,9 +4,9 @@
 #   escritura Delta y logging de ejecuciones.
 #   Importar con: %run ./bronze_utils
 
-# ── CELDA 1: Configuración de acceso ─────────────────────────
+# Configuración de acceso
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 from pyspark.sql.types import StructType
@@ -57,7 +57,7 @@ print(f"   SQL:    {sql_server}")
 
 # COMMAND ----------
 
-# ── CELDA 2: Crear tabla de watermarks si no existe ──────────
+# Crear tabla de watermarks si no existe
 
 WATERMARK_PATH = f"{BRONZE_BASE}/_control/pipeline_watermark"
 
@@ -91,7 +91,7 @@ init_watermark_table()
 
 # COMMAND ----------
 
-# ── CELDA 3: Funciones de watermark ──────────────────────────
+# Funciones de watermark
 
 def get_watermark(tabla: str) -> datetime:
     """Lee el último watermark procesado para una tabla."""
@@ -103,6 +103,10 @@ def get_watermark(tabla: str) -> datetime:
 
 def update_watermark(tabla: str, nuevo_ts: datetime):
     """Actualiza el watermark de una tabla después de procesar."""
+    
+    # Truncar microsegundos para evitar re-procesamiento en siguiente ejecución
+    nuevo_ts = nuevo_ts.replace(microsecond=0) + timedelta(seconds=1)
+    
     dt_wm = DeltaTable.forPath(spark, WATERMARK_PATH)
     dt_wm.update(
         condition = F.col("tabla_nombre") == tabla,
@@ -116,7 +120,7 @@ def update_watermark(tabla: str, nuevo_ts: datetime):
 
 # COMMAND ----------
 
-# ── CELDA 4: Función de lectura desde SQL ────────────────────
+# Función de lectura desde SQL
 
 def leer_desde_sql(
     tabla: str,
@@ -124,21 +128,16 @@ def leer_desde_sql(
     watermark_val: datetime = None,
     schema: StructType = None
 ) -> DataFrame:
-    """
-    Lee datos desde Azure SQL.
-    - Si watermark_col es None → full load
-    - Si watermark_col tiene valor → incremental desde watermark_val
-    """
     if watermark_col and watermark_val:
-        # Incremental: solo registros nuevos
+        # Truncar microsegundos para compatibilidad con Azure SQL
+        wm_str = str(watermark_val)[:19]  # "2026-06-06 03:15:00"
         query = f"""(
             SELECT *
             FROM dbo.{tabla}
-            WHERE CAST({watermark_col} AS DATETIME) > '{watermark_val}'
+            WHERE CAST({watermark_col} AS DATETIME) > '{wm_str}'
         ) t"""
-        print(f"  Modo: INCREMENTAL | {watermark_col} > {watermark_val}")
+        print(f"  Modo: INCREMENTAL | {watermark_col} > {wm_str}")
     else:
-        # Full load
         query = f"(SELECT * FROM dbo.{tabla}) t"
         print(f"  Modo: FULL LOAD")
 
@@ -158,7 +157,7 @@ def leer_desde_sql(
 
 # COMMAND ----------
 
-# ── CELDA 5: Función de escritura Delta en Bronze ─────────────
+# Función de escritura Delta en Bronze
 
 def escribir_bronze(
     df: DataFrame,
@@ -222,7 +221,7 @@ def escribir_bronze(
 
 # COMMAND ----------
 
-# ── CELDA 6: Función de logging de ejecuciones ───────────────
+# Función de logging de ejecuciones
 
 LOG_PATH = f"{BRONZE_BASE}/_control/pipeline_log"
 
@@ -269,7 +268,7 @@ def log_ejecucion(
 
 # COMMAND ----------
 
-# ── CELDA 7: Función principal de ingesta Bronze ─────────────
+# Función principal de ingesta Bronze
 
 def ingestar_bronze(
     tabla: str,

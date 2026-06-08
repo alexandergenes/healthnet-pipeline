@@ -92,9 +92,3 @@ procesar_silver(
     reglas_calidad     = REGLAS_CALIDAD,
     transformaciones_fn = transformar_red_sedes
 )
-
-# COMMAND ----------
-
-spark.read.format("delta").load(CDF_VERSIONS_PATH) \
-     .filter(F.col("tabla") == "RED_SEDES") \
-     .show(truncate=False)

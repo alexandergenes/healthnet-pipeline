@@ -5,7 +5,7 @@
 
 ingestar_bronze(
     tabla         = "FAR_DISPENSACION",
-    watermark_col = "fec_modificacion",    # ← watermark por fecha de carga
+    watermark_col = "fec_modificacion",
     partition_col = "fec_dispensacion",
     estrategia    = "incremental"
 )

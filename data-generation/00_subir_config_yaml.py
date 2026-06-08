@@ -1,6 +1,6 @@
 # Databricks notebook source
 # Notebook: 00_subir_config_yaml
-# Ejecutar UNA sola vez antes de correr fase1_generacion_datos
+# Ejecutar UNA sola vez antes de correr fase_generacion_datos
 
 STORAGE_ACCOUNT = "dlshealthnetdev"
 SECRET_SCOPE    = "healthnet-kv-scope"
@@ -12,7 +12,7 @@ spark.conf.set(
 )
 
 config_yaml = """
-seed: 50
+seed: 17
 
 date_range:
   start: "2024-01-01"
