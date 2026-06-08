@@ -226,7 +226,6 @@ def iniciar_autoloader(tabla: str, trigger_once: bool = True):
 
     print(f"\n  🔄 AutoLoader: {tabla} | formato={formato}")
 
-    # Leer SIN schema forzado — dejar que AutoLoader infiera
     reader = (spark.readStream
                    .format("cloudFiles")
                    .option("cloudFiles.format", formato)
@@ -235,63 +234,6 @@ def iniciar_autoloader(tabla: str, trigger_once: bool = True):
 
     if formato == "csv":
         reader = reader.option("header", "true").option("nullValue", "")
-
-    # Cargar sin schema explícito
-    df_stream = reader.load(path_in)
-
-    def batch_fn(df, batch_id):
-        try:
-            cargar_batch_a_sql(df, batch_id, tabla)
-        except Exception as e:
-            import traceback
-            print(f"  ❌ Error detallado batch {batch_id}:")
-            print(traceback.format_exc())
-            raise
-
-    writer = (df_stream.writeStream
-                       .foreachBatch(batch_fn)
-                       .option("checkpointLocation", f"{ckpt_path}/checkpoint")
-                       .queryName(f"autoloader_{tabla}"))
-
-    if trigger_once:
-        query = writer.trigger(once=True).start()
-        query.awaitTermination()
-        print(f"  ✅ AutoLoader completado: {tabla}")
-    else:
-        return writer.trigger(processingTime="5 minutes").start()
-
-    def batch_fn(df, batch_id):
-        try:
-            cargar_batch_a_sql(df, batch_id, tabla)
-        except Exception as e:
-            # Mostrar error completo
-            import traceback
-            print(f"  ❌ Error detallado batch {batch_id}:")
-            print(traceback.format_exc())
-            raise
-
-    writer = (df_stream.writeStream
-                       .foreachBatch(batch_fn)
-                       .option("checkpointLocation", f"{ckpt_path}/checkpoint")
-                       .queryName(f"autoloader_{tabla}"))
-
-    if trigger_once:
-        query = writer.trigger(once=True).start()
-        query.awaitTermination()
-        print(f"  ✅ AutoLoader completado: {tabla}")
-    else:
-        return writer.trigger(processingTime="5 minutes").start()
-
-    # Configurar AutoLoader según formato
-    reader = (spark.readStream
-                   .format("cloudFiles")
-                   .option("cloudFiles.format", formato)
-                   .option("cloudFiles.schemaLocation", f"{ckpt_path}/schema")
-                   .option("cloudFiles.inferColumnTypes", "false"))
-
-    if formato == "csv":
-        reader = reader.option("header", "true") \
-                       .option("nullValue", "")
     elif formato == "parquet":
         reader = reader.option("mergeSchema", "false")
     elif formato == "json":
@@ -299,21 +241,26 @@ def iniciar_autoloader(tabla: str, trigger_once: bool = True):
 
     df_stream = reader.load(path_in)
 
-    # Configurar writer con foreachBatch
+    def batch_fn(df, batch_id):
+        try:
+            cargar_batch_a_sql(df, batch_id, tabla)
+        except Exception as e:
+            import traceback
+            print(f"  ❌ Error detallado batch {batch_id}:")
+            print(traceback.format_exc())
+            raise
+
     writer = (df_stream.writeStream
-                       .foreachBatch(lambda df, bid: cargar_batch_a_sql(df, bid, tabla))
+                       .foreachBatch(batch_fn)
                        .option("checkpointLocation", f"{ckpt_path}/checkpoint")
                        .queryName(f"autoloader_{tabla}"))
 
     if trigger_once:
-        # Procesa archivos pendientes y termina — para ADF schedule
         query = writer.trigger(once=True).start()
         query.awaitTermination()
         print(f"  ✅ AutoLoader completado: {tabla}")
     else:
-        # Streaming continuo
-        query = writer.trigger(processingTime="5 minutes").start()
-        return query
+        return writer.trigger(processingTime="5 minutes").start()
 
 
 
