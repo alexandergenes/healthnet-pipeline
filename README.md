@@ -1,4 +1,4 @@
-# HealthNet Data Pipeline — DataKnow Technical Assessment
+# HealthNet Data Pipeline
 
 **Candidato:** Alexander Genes Manjarrez  
 **Sector:** C — Salud y Servicios Médicos  
